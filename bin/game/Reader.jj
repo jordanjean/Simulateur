@@ -1,0 +1,173 @@
+/**
+ * JavaCC template file created by SF JavaCC plugin 1.5.28+ wizard for JavaCC 1.5.0+
+ */
+options
+{
+  static = true;
+}
+
+PARSER_BEGIN(Reader)
+package game;
+
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+
+public class Reader
+{
+  public static Comportement read(String s) throws ParseException
+  {
+    InputStream in = new ByteArrayInputStream(s.getBytes());
+    Reader parser = new Reader(in);
+    Comportement c = Nil.NIL;
+    System.out.println("Lecture du comportement : " + s);
+    try
+    {
+      c = CPT();
+    }
+    catch (Exception e)
+    {
+      System.out.println("NOK.");
+      System.out.println(e.getMessage());
+      Reader.ReInit(in);
+    }
+    catch (Error e)
+    {
+      System.out.println("Oops.");
+      System.out.println(e.getMessage());
+    }
+    System.out.println("Comportement construit : " + c.toString());
+    return c;
+  }
+}
+
+PARSER_END(Reader)
+
+SKIP :
+{
+  " "
+| "\r"
+| "\t"
+| "\n"
+}
+
+/* Lexèmes du language*/
+
+TOKEN : /* OPERATORS */
+{
+  < STAR : "*" >
+| < ACO : "{" >
+| < ACF : "}" >
+| < PV : ";" >
+| < OU : "||" >
+| < PIPE : "|" >
+| < SUP : ">" >
+| < LPAR : "(" >
+| < RPAR : ")" >
+| < DP : ":" >
+}
+
+TOKEN :
+{
+  < DIGIT : [ "0"-"9" ] >
+}
+
+/* Règles de grammaire de ce langage */
+
+Comportement CPT() :
+{
+  Comportement c;
+  Token t;
+}
+{
+  c = OP()
+  (
+    < DP > t = < DIGIT >
+    {
+      return new Repeat(c, Integer.parseInt(t.image));
+    }
+  |
+    {
+      return c;
+    }
+  )
+| < STAR > c = CPT()
+  {
+    return new Star(c);
+  }
+| < ACO > c = SEQ() < ACF >
+  {
+    return c;
+  }
+| < LPAR > c = COUPLE() < RPAR >
+  {
+    return c;
+  }
+}
+
+Comportement SEQ() :
+{
+  Comportement c1, c2;
+}
+{
+  c1 = CPT()
+  (
+    < SUP > c2 = PREF()
+    {
+      return new Pref(c1, c2);
+    }
+  | 
+    < PV > c2 = SEQ()
+    {
+      return new Seq(c1, c2);
+    }
+  |
+    {
+      return new Seq(c1, Nil.NIL);
+    }
+  )
+}
+
+Comportement PREF() :
+{
+  Comportement c1, c2;
+}
+{
+  c1 = CPT()
+  (
+    < SUP > c2 = PREF()
+    {
+      return new Pref(c1, c2);
+    }
+  |
+    {
+      return new Pref(c1, Nil.NIL);
+    }
+  )
+}
+
+Comportement COUPLE() :
+{
+  Comportement c1, c2;
+}
+{
+  c1 = CPT()
+  (
+    < PIPE > c2 = CPT()
+    {
+      return new Alea(c1, c2);
+    }
+  | < OU > c2 = CPT()
+    {
+      return new Equitable(c1, c2);
+    }
+  )
+}
+
+Comportement OP() :
+{}
+{
+  "E"
+  {
+    return new Explorer();
+  }
+}
